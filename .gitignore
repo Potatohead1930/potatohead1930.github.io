@@ -1,0 +1,15 @@
+# Safeguard: never commit secrets or credentials
+.env
+.env.*
+*.env
+*.json
+*.pem
+*.key
+*.p12
+*.pfx
+token*
+*token*
+credentials*
+client_secret*
+secrets*
+.DS_Store
