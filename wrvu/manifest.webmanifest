@@ -1,0 +1,18 @@
+{
+  "name": "OR wRVUs",
+  "short_name": "OR wRVUs",
+  "description": "Estimate a surgery day's work RVU total from CPT codes or procedure descriptions.",
+  "id": "/wrvu/",
+  "start_url": "/wrvu/",
+  "scope": "/wrvu/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0b6a86",
+  "categories": ["medical", "productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

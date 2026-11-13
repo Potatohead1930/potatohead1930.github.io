@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OR wRVUs</title>
+<meta name="description" content="Estimate a surgery day's work RVU total from CPT codes or procedure descriptions.">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OR wRVUs">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16212a" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/ibm-plex-mono-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/ibm-plex-sans-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2")}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+/* Layout: one working column — sticky day-total bar, then patient case cards, reference notes last */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --fg:#14202b; --muted:#5b6b79; --line:#dbe1e7;
+  --accent:#0b6a86; --accent-soft:#e2f0f4; --warn:#9a5b00; --warn-soft:#fbf0dc; --danger:#b3261e;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161c; --surface:#16212a; --fg:#e4ebf0; --muted:#93a3b1; --line:#283744;
+  --accent:#5cc0dc; --accent-soft:#163846; --warn:#f0b45a; --warn-soft:#3a2c14; --danger:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#16212a; --fg:#e4ebf0; --muted:#93a3b1; --line:#283744;
+  --accent:#5cc0dc; --accent-soft:#163846; --warn:#f0b45a; --warn-soft:#3a2c14; --danger:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:1.5rem;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;max-width:65ch}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* totals bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;box-shadow:0 4px 14px -10px rgba(0,0,0,.35)}
+.stat{display:flex;flex-direction:column}
+.stat .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.stat .v{font-family:var(--mono);font-size:1.6rem;font-weight:600;line-height:1.15}
+.stat .v.big{color:var(--accent);font-size:2rem}
+.stat .alt{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.settings{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:.88rem}
+.settings label{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.rate{width:76px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--mono)}
+
+/* toolbar */
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:7px;font-size:.88rem;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{background:transparent}
+.paste{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.paste textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:10px;font-family:var(--mono);font-size:.85rem;resize:vertical}
+.hint{font-size:.82rem;color:var(--muted)}
+.example{font-size:.82rem;background:var(--warn-soft);color:var(--warn);border-radius:7px;padding:8px 12px}
+
+/* patient cards */
+.list{display:flex;flex-direction:column;gap:12px}
+.pt{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.pt-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.pt-num{font-family:var(--mono);font-size:.78rem;color:var(--muted);min-width:2.2em}
+.pt-label{flex:1;min-width:0;border:0;background:transparent;font-weight:600;padding:4px 0}
+.pt-label:focus{outline:none;border-bottom:1px dashed var(--accent)}
+.pt-total{font-family:var(--mono);font-weight:600;font-size:1.05rem}
+.x{border:0;background:transparent;color:var(--muted);font-size:1.1rem;line-height:1;padding:4px 6px;border-radius:5px}
+.x:hover{color:var(--danger);background:var(--bg)}
+.rows{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.code{font-family:var(--mono);font-weight:600;white-space:nowrap;width:72px}
+td.desc{min-width:150px}
+td.desc .src{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-left:6px}
+td.mod{white-space:nowrap;width:1%}
+td.cred{font-family:var(--mono);text-align:right;white-space:nowrap;width:1%}
+td.del{width:1%}
+.chip{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:1px 6px;border-radius:999px;margin-right:6px;vertical-align:1px}
+.chip.half{background:var(--warn-soft);color:var(--warn)}
+.chip.bil{background:var(--accent-soft);color:var(--accent)}
+.units,.custom{width:54px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--mono)}
+.chk{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted);margin-right:10px}
+.add{position:relative;padding:10px 14px;border-top:1px solid var(--line)}
+.add input{width:100%;padding:8px 10px;border:1px dashed var(--line);border-radius:7px;background:var(--bg)}
+.add input:focus{border-style:solid;border-color:var(--accent);outline:none}
+.sugg{position:absolute;left:14px;right:14px;top:calc(100% - 6px);z-index:4;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px -12px rgba(0,0,0,.45);max-height:300px;overflow-y:auto}
+.sugg li{display:flex;gap:10px;align-items:baseline;padding:7px 9px;border-radius:6px;cursor:pointer;font-size:.86rem}
+.sugg li.on,.sugg li:hover{background:var(--accent-soft)}
+.sugg .c{font-family:var(--mono);font-weight:600;min-width:52px}
+.sugg .d{flex:1;min-width:0}
+.sugg .w{font-family:var(--mono);color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+.notes{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:75ch}
+.notes b{color:var(--fg);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:7px;font-size:.85rem}
+@media (max-width:560px){
+  .bar{display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;padding:10px 14px}
+  .stat .v{font-size:1.2rem}.stat .v.big{font-size:1.55rem}.stat .k{font-size:.64rem}
+  .stat .alt{font-size:.7rem}
+  td.desc{min-width:120px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.asof{font-size:.78rem;color:var(--muted);font-family:var(--mono);margin-top:6px}
+.update{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;gap:12px;align-items:center;background:var(--fg);color:var(--bg);padding:10px 12px 10px 16px;border-radius:9px;font-size:.88rem;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:calc(100% - 32px)}
+.update button{border:0;background:var(--accent);color:var(--surface);padding:6px 12px;border-radius:6px;font-weight:600}
+@media (display-mode: standalone){.wrap{padding-block:12px 48px}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div>
+    <h1>OR wRVUs</h1>
+    <p class="sub">Add each patient's CPT codes or describe the procedure in plain words. The day total updates as you go.</p>
+    <div class="asof">Values as of the 2026 Medicare Physician Fee Schedule</div>
+  </div>
+
+  <div class="bar" aria-live="polite">
+    <div class="stat"><span class="k">Day total</span><span class="v big num" id="tot">0.00</span><span class="alt" id="totAlt"></span></div>
+    <div class="stat"><span class="k">Est. production</span><span class="v num" id="dollars">$0</span></div>
+    <div class="stat"><span class="k">Patients</span><span class="v num" id="ptCount">0</span></div>
+  </div>
+
+  <div class="settings">
+    <label for="rate">$ / wRVU <input class="rate" id="rate" type="number" step="1" min="0" value="68" inputmode="decimal"></label>
+    <label for="mppr"><input type="checkbox" id="mppr" checked> 50% reduction on 2nd+ procedure</label>
+  </div>
+
+  <div class="tools">
+    <button class="btn primary" id="addPt">+ Add patient</button>
+    <button class="btn" id="togglePaste">Paste a list</button>
+    <button class="btn" id="copy">Copy summary</button>
+    <button class="btn ghost" id="clear">Clear day</button>
+  </div>
+
+  <div class="paste" id="pasteBox" hidden>
+    <label for="pasteIn" class="hint">One patient per line. Use codes, descriptions, or both. Add <span class="mono">-50</span> or the word "bilateral" for bilateral cases.</label>
+    <textarea id="pasteIn" placeholder="1. 55874, 55876&#10;2. TURBT medium&#10;3. rezum&#10;4. 52356-50&#10;5. ureteroscopy laser with stent, bilateral"></textarea>
+    <div class="tools"><button class="btn primary" id="doPaste">Add these patients</button><button class="btn ghost" id="cancelPaste">Cancel</button></div>
+  </div>
+
+  <div class="example" id="exampleNote" hidden>Example day loaded (the 13 patients from Nov 5). Clear the day to start your own.</div>
+
+  <div class="list" id="list"></div>
+
+  <div class="notes">
+    <div><b>Values.</b> Codes marked <span class="mono">2026</span> use the published 2026 Medicare work RVU. Codes marked <span class="mono">est</span> are the pre-2026 value reduced 2.5% for the 2026 efficiency adjustment, so check those against your fee schedule. E/M codes were not cut.</div>
+    <div><b>Multiple procedures.</b> With the reduction on, the highest-valued procedure for each patient counts at 100% and other procedures at 50%. Add-on codes, radiology interpretations and E/M visits are never reduced. Turn it off if your contract credits full value.</div>
+    <div><b>Bilateral.</b> Modifier -50 credits 150% of the single-side value.</div>
+    <div><b>Codes not in the list.</b> Type the 5-digit code and press Enter, then enter its wRVU by hand.</div>
+  </div>
+</div>
+
+<div class="update" id="updateBar" role="status" hidden><span>Update available</span><button id="updateBtn">Refresh</button></div>
+
+<script>
+// [description, work RVU, source ('26' published 2026 | 'e' pre-2026 x 0.975), search keywords, type ('p' procedure | 'a' add-on | 'r' radiology | 'm' E/M)]
+const C={
+'52000':['Cystoscopy, diagnostic',1.49,'e','cysto cystourethroscopy office flexible','p'],
+'52001':['Cystoscopy with clot evacuation',2.31,'e','cysto clot evac hematuria irrigation','p'],
+'52005':['Cystoscopy with ureteral catheterization / retrograde',2.31,'e','cysto retrograde pyelogram rpg ureteral catheter','p'],
+'52007':['Cystoscopy with retrograde and ureteral brush biopsy',2.94,'e','cysto brushing brush biopsy ureter','p'],
+'52204':['Cystoscopy with bladder biopsy',2.31,'e','cysto bladder biopsy cold cup','p'],
+'52214':['Cystoscopy with fulguration (trigone, bladder neck, prostatic fossa)',3.41,'e','fulguration cautery bleeding','p'],
+'52224':['Cystoscopy with fulguration/resection of minor lesions (<0.5 cm)',3.06,'e','fulguration small tumor lesion','p'],
+'52234':['TURBT, small (0.5–2.0 cm)',4.50,'26','turbt bladder tumor resection small','p'],
+'52235':['TURBT, medium (2.0–5.0 cm)',5.30,'e','turbt bladder tumor resection medium','p'],
+'52240':['TURBT, large (>5.0 cm)',7.31,'e','turbt bladder tumor resection large','p'],
+'52265':['Cystoscopy with bladder hydrodistension, local anesthesia',2.87,'26','hydrodistension ic interstitial cystitis','p'],
+'52281':['Cystoscopy with urethral dilation / calibration',2.68,'e','urethral dilation stricture meatotomy calibration','p'],
+'52287':['Cystoscopy with Botox (chemodenervation) of bladder',3.12,'e','botox bladder injection oab chemodenervation','p'],
+'52301':['Cystoscopy with resection/fulguration of ectopic ureterocele',5.36,'26','ureterocele','p'],
+'52310':['Cystoscopy with simple stent / foreign body removal',2.68,'e','stent removal pull foreign body simple','p'],
+'52315':['Cystoscopy with complicated stent / foreign body removal',5.07,'26','stent removal complex complicated encrusted foreign body','p'],
+'52317':['Litholapaxy, simple (<2.5 cm)',6.54,'e','bladder stone litholapaxy cystolitholapaxy simple','p'],
+'52318':['Litholapaxy, complicated or >2.5 cm',8.95,'e','bladder stone litholapaxy cystolitholapaxy complex large','p'],
+'52320':['Cystoscopy with ureteral stone removal',4.57,'e','ureteral stone basket removal','p'],
+'52325':['Cystoscopy with ureteral stone fragmentation',6.00,'e','ureteral stone fragmentation lithotripsy','p'],
+'52330':['Cystoscopy with ureteral manipulation of stone',4.90,'e','stone manipulation push back','p'],
+'52332':['Cystoscopy with ureteral stent placement',2.75,'e','stent placement insertion jj double j','p'],
+'52334':['Cystoscopy with retrograde nephrostomy access',4.70,'e','retrograde nephrostomy access','p'],
+'52351':['Ureteroscopy, diagnostic',5.61,'e','urs ureteroscopy diagnostic','p'],
+'52352':['Ureteroscopy with stone removal/manipulation',6.58,'e','urs ureteroscopy basket stone removal extraction','p'],
+'52353':['Ureteroscopy with laser lithotripsy',7.31,'e','urs ureteroscopy laser lithotripsy stone cvac','p'],
+'52354':['Ureteroscopy with biopsy and/or fulguration',7.15,'e','urs ureteroscopy biopsy fulguration upper tract','p'],
+'52355':['Ureteroscopy with resection of ureteral/renal tumor',8.78,'e','urs ureteroscopy tumor resection ablation utuc','p'],
+'52356':['Ureteroscopy with laser lithotripsy and stent',7.80,'26','urs ureteroscopy laser lithotripsy stent stone cvac','p'],
+'52441':['UroLift, first implant',3.90,'e','urolift prostatic urethral lift pul implant','p'],
+'52442':['UroLift, each additional implant',0.98,'e','urolift additional implant','a'],
+'52450':['TUIP (transurethral incision of prostate)',7.59,'e','tuip incision prostate','p'],
+'52601':['TURP',12.83,'e','turp transurethral resection prostate','p'],
+'52630':['Repeat TURP (residual or regrowth)',6.39,'e','turp repeat redo residual regrowth','p'],
+'52640':['Transurethral resection of bladder neck contracture',4.61,'e','bladder neck contracture bnc','p'],
+'52648':['GreenLight PVP (laser vaporization of prostate)',11.85,'e','greenlight pvp photovaporization laser prostate','p'],
+'52649':['HoLEP (laser enucleation of prostate)',14.20,'e','holep enucleation laser prostate','p'],
+'53854':['Rezum (water vapor thermal therapy)',5.78,'26','rezum water vapor steam prostate','p'],
+'53852':['Prostate RF thermotherapy (TUNA)',5.78,'26','tuna radiofrequency thermotherapy','p'],
+'50080':['PCNL, simple (≤2 cm)',12.10,'26','pcnl percutaneous nephrolithotomy simple','p'],
+'50081':['PCNL, complex (>2 cm, staghorn, multiple)',20.39,'26','pcnl percutaneous nephrolithotomy complex staghorn','p'],
+'50432':['Nephrostomy tube placement, percutaneous',4.14,'e','nephrostomy tube placement pcn','p'],
+'50435':['Nephrostomy tube exchange',1.77,'e','nephrostomy tube exchange change pcn','p'],
+'50590':['ESWL (shock wave lithotripsy)',9.53,'e','eswl swl shock wave lithotripsy','p'],
+'54161':['Circumcision, surgical (older than 28 days)',4.48,'e','circumcision','p'],
+'54520':['Orchiectomy, simple',5.17,'e','orchiectomy simple castration','p'],
+'54640':['Orchiopexy, inguinal',7.54,'e','orchiopexy undescended testis','p'],
+'55040':['Hydrocelectomy, unilateral',5.43,'e','hydrocele hydrocelectomy unilateral','p'],
+'55041':['Hydrocelectomy, bilateral',8.51,'e','hydrocele hydrocelectomy bilateral','p'],
+'55250':['Vasectomy',3.29,'e','vasectomy','p'],
+'55706':['Prostate biopsy, transperineal template saturation',6.00,'e','prostate biopsy saturation template mapping transperineal','p'],
+'55707':['Prostate biopsy, transrectal, ultrasound-guided',3.23,'e','prostate biopsy trus transrectal','p'],
+'55709':['Prostate biopsy, transperineal, ultrasound-guided',3.23,'26','prostate biopsy tp transperineal','p'],
+'55874':['SpaceOAR / rectal spacer placement',2.95,'e','spaceoar hydrogel spacer barrigel','p'],
+'55875':['Transperineal needle placement for brachytherapy',13.12,'26','brachytherapy seeds needle','p'],
+'55876':['Fiducial marker placement, prostate',1.69,'26','fiducial markers gold seeds','p'],
+'55866':['Robotic radical prostatectomy',31.26,'e','robotic prostatectomy ralp radical laparoscopic','p'],
+'54405':['Inflatable penile prosthesis (IPP)',14.16,'e','ipp penile prosthesis implant','p'],
+'74420':['Retrograde pyelogram, interpretation (-26)',0.35,'e','retrograde pyelogram rpg imaging interpretation','r'],
+'99202':['New patient visit, level 2',0.93,'26','office new visit','m'],
+'99203':['New patient visit, level 3',1.60,'26','office new visit','m'],
+'99204':['New patient visit, level 4',2.60,'26','office new visit','m'],
+'99205':['New patient visit, level 5',3.50,'26','office new visit','m'],
+'99212':['Established visit, level 2',0.70,'26','office follow up established','m'],
+'99213':['Established visit, level 3',1.30,'26','office follow up established','m'],
+'99214':['Established visit, level 4',1.92,'26','office follow up established','m'],
+'99215':['Established visit, level 5',2.80,'26','office follow up established','m'],
+'99221':['Initial hospital visit, low',1.63,'26','hospital admit inpatient consult initial','m'],
+'99222':['Initial hospital visit, moderate',2.61,'26','hospital admit inpatient consult initial','m'],
+'99223':['Initial hospital visit, high',3.50,'26','hospital admit inpatient consult initial','m'],
+'99231':['Subsequent hospital visit, low',1.00,'26','hospital rounding subsequent','m'],
+'99232':['Subsequent hospital visit, moderate',1.59,'26','hospital rounding subsequent','m'],
+'99233':['Subsequent hospital visit, high',2.40,'26','hospital rounding subsequent','m'],
+'G2211':['Visit complexity add-on (Medicare)',0.33,'26','g2211 complexity longitudinal add-on','a']
+};
+const TYPE_LABEL={a:'add-on',r:'radiology',m:'E/M'};
+const EXAMPLE=[
+ [['55874'],['55876']],[['52235']],[['53854']],[['74420'],['52310']],[['52356',1]],
+ [['74420'],['52310']],[['52356',1]],[['52204']],[['52353']],[['52332'],['50435'],['52235']],
+ [['52630']],[['99222']],[['99222']]];
+
+let uid=1;
+const mkLine=(code,bil=false,units=1,custom=null)=>({id:uid++,code,bil,units,custom});
+const mkPt=(lines=[],label='')=>({id:uid++,label,lines});
+let S={rate:68,mppr:true,example:false,patients:[]};
+
+function load(){
+  try{const raw=localStorage.getItem('wrvu-day-v1'); if(raw){const s=JSON.parse(raw); if(s&&Array.isArray(s.patients)){S=s; S.patients.forEach(p=>{uid=Math.max(uid,p.id+1);p.lines.forEach(l=>uid=Math.max(uid,l.id+1))}); return;}}}catch(e){}
+  S.example=true;
+  S.patients=EXAMPLE.map(ls=>mkPt(ls.map(([c,b])=>mkLine(c,!!b))));
+}
+function save(){try{localStorage.setItem('wrvu-day-v1',JSON.stringify(S))}catch(e){}}
+
+function base(l){
+  const c=C[l.code]; const w=c?c[1]:(parseFloat(l.custom)||0);
+  return w*(Math.max(0,+l.units||0))*(l.bil?1.5:1);
+}
+function typeOf(l){return C[l.code]?C[l.code][4]:'p'}
+function calc(p){
+  const rows=p.lines.map(l=>({l,b:base(l),f:1}));
+  const elig=rows.filter(r=>typeOf(r.l)==='p').sort((a,b)=>b.b-a.b);
+  if(S.mppr) elig.slice(1).forEach(r=>r.f=.5);
+  const full=rows.reduce((s,r)=>s+r.b,0);
+  const total=rows.reduce((s,r)=>s+r.b*r.f,0);
+  return {rows,total,full};
+}
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f2=n=>n.toFixed(2);
+const money=n=>'$'+Math.round(n).toLocaleString();
+
+function search(q){
+  q=q.trim().toLowerCase(); if(!q) return [];
+  const m=q.match(/^([0-9g]\d{0,4})/i);
+  const out=[];
+  if(m&&/^\d|^g\d/i.test(q)){
+    for(const k in C) if(k.toLowerCase().startsWith(m[1].toLowerCase())) out.push([k,100-k.length]);
+  }
+  const words=q.replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!['with','and','w','the','of','a'].includes(w));
+  if(words.length&&!/^\d{3,5}$/.test(q)){
+    for(const k in C){
+      const hay=(k+' '+C[k][0]+' '+C[k][3]).toLowerCase();
+      let hits=0; for(const w of words) if(hay.includes(w)) hits++;
+      if(hits===words.length) out.push([k,50+hits-(C[k][0].length/200)]);
+      else if(hits>0&&hits>=words.length-1&&words.length>2) out.push([k,20+hits]);
+    }
+  }
+  const seen=new Set();
+  return out.sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!seen.has(k)&&seen.add(k)).slice(0,8);
+}
+
+function render(){
+  const ae=document.activeElement, aid=ae&&ae.id, sel=ae&&ae.selectionStart;
+  $('#rate').value=S.rate; $('#mppr').checked=S.mppr;
+  $('#exampleNote').hidden=!S.example;
+  const list=$('#list');
+  if(!S.patients.length){list.innerHTML='<div class="empty">No patients yet. Add a patient or paste a list of cases.</div>';}
+  else list.innerHTML=S.patients.map((p,i)=>{
+    const r=calc(p);
+    const rows=r.rows.map(({l,b,f})=>{
+      const c=C[l.code]; const t=typeOf(l);
+      const desc=c?esc(c[0])+`<span class="src">${c[2]==='26'?'2026':'est'}${TYPE_LABEL[t]?' · '+TYPE_LABEL[t]:''}</span>`
+        :`<span class="hint">Not in list — wRVU</span> <input class="custom" id="cu-${l.id}" data-l="${l.id}" type="number" step="0.01" min="0" value="${l.custom??''}" aria-label="wRVU for ${esc(l.code)}">`;
+      const canBil=t==='p';
+      return `<tr>
+        <td class="code">${esc(l.code)}</td>
+        <td class="desc">${desc}</td>
+        <td class="mod">${canBil?`<label class="chk"><input type="checkbox" id="bi-${l.id}" data-bil="${l.id}" ${l.bil?'checked':''}>-50</label>`:''}<label class="chk">×<input class="units" id="un-${l.id}" data-units="${l.id}" type="number" min="0" step="1" value="${l.units}" aria-label="Units"></label></td>
+        <td class="cred">${l.bil?'<span class="chip bil">150%</span>':''}${f<1?'<span class="chip half">50%</span>':''}${f2(b*f)}</td>
+        <td class="del"><button class="x" data-rml="${p.id}:${l.id}" aria-label="Remove ${esc(l.code)}">×</button></td></tr>`;
+    }).join('');
+    return `<section class="pt">
+      <div class="pt-head"><span class="pt-num">${i+1}.</span>
+        <input class="pt-label" id="lb-${p.id}" data-label="${p.id}" value="${esc(p.label)}" placeholder="Patient ${i+1}" aria-label="Patient label">
+        <span class="pt-total num">${f2(r.total)}</span>
+        <button class="x" data-rmp="${p.id}" aria-label="Remove patient ${i+1}">×</button></div>
+      ${p.lines.length?`<div class="rows"><table>${rows}</table></div>`:''}
+      <div class="add"><input id="ad-${p.id}" data-add="${p.id}" autocomplete="off" placeholder="Add a code or procedure — e.g. 52356, or “ureteroscopy laser stent”" aria-label="Add code to patient ${i+1}"><ul class="sugg" id="sg-${p.id}" hidden></ul></div>
+    </section>`;
+  }).join('');
+  totals();
+  if(aid){const el=document.getElementById(aid); if(el){el.focus(); try{if(sel!=null)el.setSelectionRange(sel,sel)}catch(e){}}}
+  save();
+}
+function totals(){
+  let t=0,full=0; S.patients.forEach(p=>{const r=calc(p); t+=r.total; full+=r.full});
+  $('#tot').textContent=f2(t);
+  $('#totAlt').textContent=S.mppr&&Math.abs(full-t)>.004?`${f2(full)} without reduction`:'';
+  $('#dollars').textContent=money(t*(+S.rate||0));
+  $('#ptCount').textContent=S.patients.length;
+}
+const pt=id=>S.patients.find(p=>p.id===+id);
+function touch(){ if(S.example){S.example=false} }
+
+function addCode(pid,code,bil=false){
+  const p=pt(pid); if(!p) return; code=code.toUpperCase();
+  p.lines.push(mkLine(code,bil)); touch(); render();
+  const el=document.getElementById('ad-'+pid); if(el){el.value='';el.focus()}
+}
+
+// suggestion state
+let sg={pid:null,items:[],on:0};
+function showSugg(pid,q){
+  const ul=document.getElementById('sg-'+pid); if(!ul) return;
+  const items=search(q); sg={pid,items,on:0};
+  const raw=q.trim();
+  if(!items.length){
+    if(/^(\d{5}|[a-z]\d{4})$/i.test(raw)){ul.innerHTML=`<li class="on" data-pick="${esc(raw.toUpperCase())}"><span class="c">${esc(raw.toUpperCase())}</span><span class="d">Add as custom code (enter wRVU)</span></li>`;sg.items=[raw.toUpperCase()];ul.hidden=false;}
+    else ul.hidden=true; return;
+  }
+  ul.innerHTML=items.map((k,i)=>`<li class="${i===0?'on':''}" data-pick="${k}"><span class="c">${k}</span><span class="d">${esc(C[k][0])}</span><span class="w">${f2(C[k][1])}</span></li>`).join('');
+  ul.hidden=false;
+}
+function hideSugg(){document.querySelectorAll('.sugg').forEach(u=>u.hidden=true); sg.pid=null}
+
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.add){showSugg(t.dataset.add,t.value);return}
+  if(t.dataset.label){const p=pt(t.dataset.label); p.label=t.value; touch(); save(); return}
+  const lid=t.dataset.units||t.dataset.l;
+  if(lid){
+    for(const p of S.patients){const l=p.lines.find(x=>x.id===+lid); if(l){ if(t.dataset.units) l.units=t.value; else l.custom=t.value; }}
+    touch(); render(); return;
+  }
+  if(t.id==='rate'){S.rate=t.value; totals(); save()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.bil){for(const p of S.patients){const l=p.lines.find(x=>x.id===+t.dataset.bil); if(l) l.bil=t.checked} touch(); render()}
+  if(t.id==='mppr'){S.mppr=t.checked; render()}
+});
+document.addEventListener('keydown',e=>{
+  const t=e.target; if(!t.dataset||!t.dataset.add) return;
+  const ul=document.getElementById('sg-'+t.dataset.add);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    if(!sg.items.length) return; e.preventDefault();
+    sg.on=(sg.on+(e.key==='ArrowDown'?1:-1)+sg.items.length)%sg.items.length;
+    [...ul.children].forEach((li,i)=>li.classList.toggle('on',i===sg.on));
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    const v=t.value.trim(); if(!v) return;
+    const bil=/(-|\s)50\b|bilat/i.test(v);
+    const direct=v.match(/^([0-9]{5}|g\d{4})/i);
+    if(direct&&!C[direct[1].toUpperCase()]&&!sg.items.length) return addCode(t.dataset.add,direct[1],bil);
+    if(sg.items.length) addCode(t.dataset.add,sg.items[sg.on],bil&&typeOf({code:sg.items[sg.on]})==='p');
+  } else if(e.key==='Escape') hideSugg();
+});
+document.addEventListener('mousedown',e=>{
+  const li=e.target.closest('[data-pick]');
+  if(li){e.preventDefault(); addCode(sg.pid,li.dataset.pick); return}
+  if(!e.target.closest('.add')) hideSugg();
+});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t) return;
+  if(t.dataset.rmp){S.patients=S.patients.filter(p=>p.id!==+t.dataset.rmp); touch(); render()}
+  if(t.dataset.rml){const [pid,lid]=t.dataset.rml.split(':'); const p=pt(pid); p.lines=p.lines.filter(l=>l.id!==+lid); touch(); render()}
+});
+
+$('#addPt').onclick=()=>{
+  if(S.example){S.patients=[];S.example=false}
+  const p=mkPt(); S.patients.push(p); render(); document.getElementById('ad-'+p.id).focus();
+};
+$('#clear').onclick=()=>{
+  const b=$('#clear');
+  if(b.dataset.armed){S.patients=[];S.example=false;render();b.textContent='Clear day';delete b.dataset.armed;return}
+  b.dataset.armed='1'; b.textContent='Tap again to clear';
+  setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent='Clear day'}},3000);
+};
+$('#togglePaste').onclick=()=>{const bx=$('#pasteBox'); bx.hidden=!bx.hidden; if(!bx.hidden) $('#pasteIn').focus()};
+$('#cancelPaste').onclick=()=>{$('#pasteBox').hidden=true};
+$('#doPaste').onclick=()=>{
+  const lines=$('#pasteIn').value.split(/\n+/).map(s=>s.replace(/^\s*(pt\.?|patient)?\s*\d{1,2}[.)]\s*/i,'').trim()).filter(Boolean);
+  if(!lines.length) return;
+  if(S.example){S.patients=[];S.example=false}
+  let unmatched=[];
+  for(const line of lines){
+    const p=mkPt();
+    const segs=line.split(/[,;+]|\band\b(?=\s*\d)/i).map(s=>s.trim()).filter(Boolean);
+    for(const seg of segs){
+      const segBil=/bilat/i.test(seg);
+      const codes=[...seg.matchAll(/\b(\d{5}|g\d{4})(?:\s*-\s*(50|26|59|xs|lt|rt))?/gi)];
+      if(codes.length){codes.forEach(m=>{const c=m[1].toUpperCase(); p.lines.push(mkLine(c,(m[2]==='50'||segBil)&&(!C[c]||C[c][4]==='p')))}); continue}
+      const q=seg.replace(/bilateral|bilat/ig,'').trim(); const hit=search(q)[0];
+      if(hit) p.lines.push(mkLine(hit,segBil&&C[hit][4]==='p')); else unmatched.push(seg);
+    }
+    S.patients.push(p);
+  }
+  $('#pasteIn').value=''; $('#pasteBox').hidden=true; render();
+  toast(unmatched.length?`Added ${lines.length} patients. Couldn't match: ${unmatched.slice(0,3).join(', ')}`:`Added ${lines.length} patients`);
+};
+$('#copy').onclick=async()=>{
+  let t=0; const out=S.patients.map((p,i)=>{const r=calc(p); t+=r.total;
+    return `${p.label||'Patient '+(i+1)}: `+r.rows.map(({l,b,f})=>`${l.code}${l.bil?'-50':''}${l.units!=1?' x'+l.units:''} (${f2(b*f)})`).join(' + ')+` = ${f2(r.total)}`});
+  out.push(`Day total: ${f2(t)} wRVU (${money(t*(+S.rate||0))} at $${S.rate}/wRVU${S.mppr?', multiple-procedure reduction applied':''})`);
+  const txt=out.join('\n');
+  try{await navigator.clipboard.writeText(txt); toast('Summary copied')}
+  catch(e){const ta=$('#pasteIn'); $('#pasteBox').hidden=false; ta.value=txt; ta.select(); toast('Select-all text shown above. Copy it with your keyboard.')}
+};
+function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
+
+load(); render();
+
+// Offline support and update prompt
+if('serviceWorker' in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('sw.js');
+      const show=w=>{ if(!w) return; $('#updateBar').hidden=false; $('#updateBtn').onclick=()=>w.postMessage('skipWaiting'); };
+      if(reg.waiting&&navigator.serviceWorker.controller) show(reg.waiting);
+      reg.addEventListener('updatefound',()=>{const nw=reg.installing; nw&&nw.addEventListener('statechange',()=>{ if(nw.state==='installed'&&navigator.serviceWorker.controller) show(nw); });});
+      let reloaded=false;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!reloaded){reloaded=true; location.reload();} });
+      setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+    }catch(e){}
+  });
+}
+</script>
+</body>
+</html>
+
