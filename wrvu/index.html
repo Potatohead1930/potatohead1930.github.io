@@ -13,163 +13,242 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="OR wRVUs">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#16212a" media="(prefers-color-scheme: dark)">
-<link rel="preload" href="fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/ibm-plex-mono-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <style>
-@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/ibm-plex-sans-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2")}
-:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{margin:0;-webkit-text-size-adjust:100%}
-img{max-width:100%}
-[hidden]{display:none!important}
-/* Layout: one working column — sticky day-total bar, then patient case cards, reference notes last */
+/* Layout: iOS inset-grouped column — large title, summary card, settings group, patient cards; frosted compact bar appears on scroll */
 :root{
-  --bg:#f3f5f7; --surface:#ffffff; --fg:#14202b; --muted:#5b6b79; --line:#dbe1e7;
-  --accent:#0b6a86; --accent-soft:#e2f0f4; --warn:#9a5b00; --warn-soft:#fbf0dc; --danger:#b3261e;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f2f2f7; --card:#ffffff; --elev:#ffffff;
+  --fg:#1d1d1f; --secondary:#6e6e73; --tertiary:#aeaeb2;
+  --separator:rgba(60,60,67,.13); --fill:rgba(118,118,128,.12); --fill-2:rgba(118,118,128,.08);
+  --accent:#007aff; --accent-tint:rgba(0,122,255,.1); --on-accent:#ffffff;
+  --orange:#c46d00; --orange-tint:rgba(255,149,0,.14);
+  --red:#ff3b30; --green:#34c759;
+  --bar:rgba(249,249,251,.78);
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px -8px rgba(0,0,0,.08);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --rounded:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --r-card:20px; --r-ctl:12px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f161c; --surface:#16212a; --fg:#e4ebf0; --muted:#93a3b1; --line:#283744;
-  --accent:#5cc0dc; --accent-soft:#163846; --warn:#f0b45a; --warn-soft:#3a2c14; --danger:#ff8a80; color-scheme:dark}}
+  --bg:#000000; --card:#1c1c1e; --elev:#2c2c2e;
+  --fg:#f5f5f7; --secondary:#98989f; --tertiary:#636366;
+  --separator:rgba(84,84,88,.55); --fill:rgba(118,118,128,.24); --fill-2:rgba(118,118,128,.16);
+  --accent:#0a84ff; --accent-tint:rgba(10,132,255,.18); --on-accent:#ffffff;
+  --orange:#ffb340; --orange-tint:rgba(255,159,10,.18);
+  --red:#ff453a; --green:#30d158;
+  --bar:rgba(28,28,30,.72);
+  --shadow:0 0 0 1px rgba(255,255,255,.03);
+  color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f161c; --surface:#16212a; --fg:#e4ebf0; --muted:#93a3b1; --line:#283744;
-  --accent:#5cc0dc; --accent-soft:#163846; --warn:#f0b45a; --warn-soft:#3a2c14; --danger:#ff8a80; color-scheme:dark}
-*{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
-.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
-h1{font-size:1.5rem;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
-.sub{color:var(--muted);margin:2px 0 0;max-width:65ch}
-.mono{font-family:var(--mono)}
+  --bg:#000000; --card:#1c1c1e; --elev:#2c2c2e;
+  --fg:#f5f5f7; --secondary:#98989f; --tertiary:#636366;
+  --separator:rgba(84,84,88,.55); --fill:rgba(118,118,128,.24); --fill-2:rgba(118,118,128,.16);
+  --accent:#0a84ff; --accent-tint:rgba(10,132,255,.18); --on-accent:#ffffff;
+  --orange:#ffb340; --orange-tint:rgba(255,159,10,.18);
+  --red:#ff453a; --green:#30d158;
+  --bar:rgba(28,28,30,.72);
+  --shadow:0 0 0 1px rgba(255,255,255,.03);
+  color-scheme:dark}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:17px;line-height:1.35;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:3px solid var(--accent-tint);outline-offset:2px;border-radius:10px}
 .num{font-variant-numeric:tabular-nums}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* totals bar */
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;box-shadow:0 4px 14px -10px rgba(0,0,0,.35)}
-.stat{display:flex;flex-direction:column}
-.stat .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
-.stat .v{font-family:var(--mono);font-size:1.6rem;font-weight:600;line-height:1.15}
-.stat .v.big{color:var(--accent);font-size:2rem}
-.stat .alt{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
-.settings{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:.88rem}
-.settings label{display:flex;align-items:center;gap:6px;color:var(--muted)}
-.rate{width:76px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--mono)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--card);border-radius:var(--r-card);box-shadow:var(--shadow)}
 
-/* toolbar */
-.tools{display:flex;flex-wrap:wrap;gap:8px}
-.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:7px;font-size:.88rem;font-weight:500}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
-.btn.ghost{background:transparent}
-.paste{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
-.paste textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:10px;font-family:var(--mono);font-size:.85rem;resize:vertical}
-.hint{font-size:.82rem;color:var(--muted)}
-.example{font-size:.82rem;background:var(--warn-soft);color:var(--warn);border-radius:7px;padding:8px 12px}
+/* large title */
+.hero{padding:0 4px;display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--display);font-size:2.15rem;font-weight:700;letter-spacing:-.025em;margin:0;line-height:1.1}
+.sub{margin:0;color:var(--secondary);font-size:1rem;max-width:52ch}
 
-/* patient cards */
-.list{display:flex;flex-direction:column;gap:12px}
-.pt{background:var(--surface);border:1px solid var(--line);border-radius:10px}
-.pt-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
-.pt-num{font-family:var(--mono);font-size:.78rem;color:var(--muted);min-width:2.2em}
-.pt-label{flex:1;min-width:0;border:0;background:transparent;font-weight:600;padding:4px 0}
-.pt-label:focus{outline:none;border-bottom:1px dashed var(--accent)}
-.pt-total{font-family:var(--mono);font-weight:600;font-size:1.05rem}
-.x{border:0;background:transparent;color:var(--muted);font-size:1.1rem;line-height:1;padding:4px 6px;border-radius:5px}
-.x:hover{color:var(--danger);background:var(--bg)}
-.rows{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.88rem}
-td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr:last-child td{border-bottom:0}
-td.code{font-family:var(--mono);font-weight:600;white-space:nowrap;width:72px}
-td.desc{min-width:150px}
-td.desc .src{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-left:6px}
-td.mod{white-space:nowrap;width:1%}
-td.cred{font-family:var(--mono);text-align:right;white-space:nowrap;width:1%}
-td.del{width:1%}
-.chip{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:1px 6px;border-radius:999px;margin-right:6px;vertical-align:1px}
-.chip.half{background:var(--warn-soft);color:var(--warn)}
-.chip.bil{background:var(--accent-soft);color:var(--accent)}
-.units,.custom{width:54px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--mono)}
-.chk{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted);margin-right:10px}
-.add{position:relative;padding:10px 14px;border-top:1px solid var(--line)}
-.add input{width:100%;padding:8px 10px;border:1px dashed var(--line);border-radius:7px;background:var(--bg)}
-.add input:focus{border-style:solid;border-color:var(--accent);outline:none}
-.sugg{position:absolute;left:14px;right:14px;top:calc(100% - 6px);z-index:4;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px -12px rgba(0,0,0,.45);max-height:300px;overflow-y:auto}
-.sugg li{display:flex;gap:10px;align-items:baseline;padding:7px 9px;border-radius:6px;cursor:pointer;font-size:.86rem}
-.sugg li.on,.sugg li:hover{background:var(--accent-soft)}
+/* frosted compact bar */
+.topbar{position:fixed;inset:0 0 auto;z-index:30;padding-top:env(safe-area-inset-top,0px);background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--separator);transform:translateY(-100%);opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none}
+.topbar.show{transform:none;opacity:1;pointer-events:auto}
+.topbar-in{max-width:720px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:11px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.tb-title{font-weight:600;font-size:1rem}
+.tb-stats{font-family:var(--rounded);font-variant-numeric:tabular-nums;color:var(--secondary);font-size:.95rem;white-space:nowrap}
+.tb-stats b{color:var(--fg);font-weight:600}
+
+/* summary */
+.summary{padding:22px 22px 20px;display:flex;flex-wrap:wrap;gap:18px 24px;align-items:flex-end;justify-content:space-between}
+.eyebrow{font-size:.8rem;font-weight:500;color:var(--secondary)}
+.sum-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.big{display:flex;align-items:baseline;gap:8px}
+.big #tot{font-family:var(--rounded);font-size:3.4rem;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.big .unit{font-family:var(--rounded);font-size:1.05rem;font-weight:600;color:var(--secondary)}
+.alt{font-size:.85rem;color:var(--secondary);min-height:1.2em;font-variant-numeric:tabular-nums}
+.sum-side{display:flex;gap:28px}
+.kv{display:flex;flex-direction:column;gap:2px}
+.kv-v{font-family:var(--rounded);font-size:1.45rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kv-v.money{color:var(--green)}
+
+/* grouped settings */
+.group{overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:50px;padding:8px 16px 8px 18px;position:relative}
+.row+.row::before{content:"";position:absolute;top:0;left:18px;right:0;border-top:.5px solid var(--separator)}
+.rate-wrap{display:flex;align-items:center;gap:2px;color:var(--secondary)}
+.rate{width:72px;text-align:right;border:0;background:transparent;font-family:var(--rounded);font-size:1.05rem;font-variant-numeric:tabular-nums;color:var(--fg);padding:4px 0}
+.rate:focus{outline:none;color:var(--accent)}
+.switch{appearance:none;-webkit-appearance:none;flex:none;width:51px;height:31px;border-radius:999px;background:var(--fill);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.switch:checked{background:var(--green)}
+.switch:checked::after{transform:translateX(20px)}
+
+/* actions */
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{height:40px;padding:0 18px;border-radius:999px;font-size:.95rem;font-weight:600;background:var(--accent-tint);color:var(--accent);display:inline-flex;align-items:center;gap:6px;transition:transform .12s,filter .15s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.plain{background:transparent;color:var(--secondary);font-weight:500}
+.btn.plain.armed{color:var(--red)}
+.btn svg{width:16px;height:16px}
+
+.paste{padding:16px;display:flex;flex-direction:column;gap:12px}
+.paste textarea{width:100%;min-height:130px;border:0;border-radius:var(--r-ctl);background:var(--fill-2);padding:12px 14px;font-family:var(--mono);font-size:.85rem;line-height:1.5;resize:vertical}
+.paste textarea:focus{outline:none;box-shadow:0 0 0 3px var(--accent-tint)}
+.hint{font-size:.85rem;color:var(--secondary)}
+.callout{font-size:.9rem;background:var(--accent-tint);color:var(--fg);border-radius:14px;padding:12px 16px}
+
+/* patients */
+.list{display:flex;flex-direction:column;gap:16px}
+.pt{overflow:visible}
+.pt-head{display:flex;align-items:center;gap:10px;padding:14px 12px 10px 18px}
+.pt-label{flex:1;min-width:0;border:0;background:transparent;font-weight:600;font-size:1.05rem;padding:2px 0;color:var(--fg)}
+.pt-label::placeholder{color:var(--fg);opacity:1}
+.pt-label:focus{outline:none}
+.pt-label:focus::placeholder{color:var(--tertiary)}
+.pt-total{font-family:var(--rounded);font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.icon-btn{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--tertiary);flex:none;transition:color .15s,background .15s}
+.icon-btn:hover{color:var(--red);background:var(--fill-2)}
+.icon-btn svg{width:18px;height:18px}
+.lines{list-style:none;margin:0;padding:0}
+.line{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;align-items:center;padding:12px 10px 12px 18px;position:relative}
+.line::before{content:"";position:absolute;top:0;left:18px;right:0;border-top:.5px solid var(--separator)}
+.l-main{min-width:0;display:flex;flex-direction:column;gap:3px}
+.l-code{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:600;font-size:.95rem}
+.tag{font-family:var(--sans);font-size:.68rem;font-weight:600;color:var(--secondary);background:var(--fill-2);padding:2px 7px;border-radius:999px;letter-spacing:0}
+.l-desc{font-size:.9rem;color:var(--secondary);line-height:1.3}
+.l-ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;align-items:center}
+.pill-toggle{height:28px;padding:0 12px;border-radius:999px;font-size:.8rem;font-weight:600;background:var(--fill-2);color:var(--secondary);transition:background .15s,color .15s}
+.pill-toggle.on{background:var(--accent);color:var(--on-accent)}
+.units-wrap{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 4px 0 12px;border-radius:999px;background:var(--fill-2);font-size:.8rem;font-weight:600;color:var(--secondary)}
+.units,.custom{width:44px;border:0;background:transparent;font-family:var(--rounded);font-variant-numeric:tabular-nums;text-align:center;font-size:.9rem;color:var(--fg);padding:2px 0}
+.custom{width:64px;background:var(--fill-2);border-radius:8px;padding:4px 6px;margin-top:2px}
+.units:focus,.custom:focus{outline:none;color:var(--accent)}
+.l-val{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--rounded);font-weight:600;font-size:1.05rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chips{display:flex;gap:4px}
+.chip{font-family:var(--sans);font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:999px}
+.chip.half{background:var(--orange-tint);color:var(--orange)}
+.chip.bil{background:var(--accent-tint);color:var(--accent)}
+
+.add{position:relative;padding:4px 14px 14px}
+.search{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:var(--r-ctl);background:var(--fill-2);color:var(--secondary);transition:box-shadow .15s}
+.search:focus-within{box-shadow:0 0 0 3px var(--accent-tint)}
+.search svg{width:16px;height:16px;flex:none}
+.search input{flex:1;min-width:0;border:0;background:transparent;font-size:.95rem;color:var(--fg);padding:0}
+.search input::placeholder{color:var(--secondary)}
+.search input:focus{outline:none}
+.sugg{position:absolute;left:14px;right:14px;top:calc(100% - 8px);z-index:20;list-style:none;margin:0;padding:6px;background:var(--elev);border-radius:16px;box-shadow:0 0 0 .5px var(--separator),0 18px 48px -12px rgba(0,0,0,.28);max-height:320px;overflow-y:auto}
+.sugg li{display:flex;gap:12px;align-items:baseline;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:.9rem}
+.sugg li.on,.sugg li:hover{background:var(--accent-tint)}
 .sugg .c{font-family:var(--mono);font-weight:600;min-width:52px}
-.sugg .d{flex:1;min-width:0}
-.sugg .w{font-family:var(--mono);color:var(--muted)}
-.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
-.notes{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:75ch}
+.sugg .d{flex:1;min-width:0;color:var(--fg)}
+.sugg .w{font-family:var(--rounded);color:var(--secondary);font-variant-numeric:tabular-nums}
+
+.empty{padding:40px 24px;text-align:center;color:var(--secondary);display:flex;flex-direction:column;gap:6px;align-items:center}
+.empty b{color:var(--fg);font-size:1.05rem}
+
+.notes{padding:0 4px;display:flex;flex-direction:column;gap:10px;font-size:.85rem;color:var(--secondary);line-height:1.45;max-width:62ch}
+.notes h2{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--secondary);margin:6px 0 0}
+.notes p{margin:0}
 .notes b{color:var(--fg);font-weight:600}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:7px;font-size:.85rem}
+.asof{font-size:.8rem;color:var(--tertiary);padding:0 4px;margin:0}
+
+.toast,.update{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:var(--fg);box-shadow:0 0 0 .5px var(--separator),0 12px 36px -10px rgba(0,0,0,.3);border-radius:999px;font-size:.9rem;font-weight:500;max-width:calc(100% - 32px)}
+.toast{padding:10px 18px}
+.update{display:flex;gap:12px;align-items:center;padding:6px 6px 6px 18px}
+.update button{height:32px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:.85rem}
+
 @media (max-width:560px){
-  .bar{display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;padding:10px 14px}
-  .stat .v{font-size:1.2rem}.stat .v.big{font-size:1.55rem}.stat .k{font-size:.64rem}
-  .stat .alt{font-size:.7rem}
-  td.desc{min-width:120px}}
+  .wrap{padding-block:16px 56px;gap:16px}
+  h1{font-size:2.05rem}
+  .summary{padding:18px}
+  .big #tot{font-size:2.9rem}
+  .sum-side{gap:24px}
+  .line{grid-template-columns:1fr auto auto;padding-left:16px}
+}
+@media (display-mode: standalone){.wrap{padding-block:12px 56px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-.asof{font-size:.78rem;color:var(--muted);font-family:var(--mono);margin-top:6px}
-.update{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;gap:12px;align-items:center;background:var(--fg);color:var(--bg);padding:10px 12px 10px 16px;border-radius:9px;font-size:.88rem;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:calc(100% - 32px)}
-.update button{border:0;background:var(--accent);color:var(--surface);padding:6px 12px;border-radius:6px;font-weight:600}
-@media (display-mode: standalone){.wrap{padding-block:12px 48px}}
 </style>
 </head>
 <body>
+<header class="topbar" id="topbar" aria-hidden="true">
+  <div class="topbar-in">
+    <span class="tb-title">OR wRVUs</span>
+    <span class="tb-stats"><b id="tbTot">0.00</b> wRVU · <span id="tbDollars">$0</span> · <span id="tbPts">0</span> pts</span>
+  </div>
+</header>
 
-<div class="wrap">
-  <div>
+<main class="wrap">
+  <div class="hero">
     <h1>OR wRVUs</h1>
-    <p class="sub">Add each patient's CPT codes or describe the procedure in plain words. The day total updates as you go.</p>
-    <div class="asof">Values as of the 2026 Medicare Physician Fee Schedule</div>
+    <p class="sub">Add each patient's CPT codes, or describe the procedure in plain words.</p>
   </div>
 
-  <div class="bar" aria-live="polite">
-    <div class="stat"><span class="k">Day total</span><span class="v big num" id="tot">0.00</span><span class="alt" id="totAlt"></span></div>
-    <div class="stat"><span class="k">Est. production</span><span class="v num" id="dollars">$0</span></div>
-    <div class="stat"><span class="k">Patients</span><span class="v num" id="ptCount">0</span></div>
+  <section class="summary card" id="summary" aria-live="polite">
+    <div class="sum-main">
+      <span class="eyebrow">Day total</span>
+      <div class="big"><span id="tot">0.00</span><span class="unit">wRVU</span></div>
+      <span class="alt" id="totAlt"></span>
+    </div>
+    <div class="sum-side">
+      <div class="kv"><span class="eyebrow">Production</span><span class="kv-v money" id="dollars">$0</span></div>
+      <div class="kv"><span class="eyebrow">Patients</span><span class="kv-v" id="ptCount">0</span></div>
+    </div>
+  </section>
+
+  <section class="group card" aria-label="Settings">
+    <label class="row" for="rate"><span>Dollars per wRVU</span><span class="rate-wrap">$<input class="rate" id="rate" type="number" step="1" min="0" value="68" inputmode="decimal"></span></label>
+    <label class="row" for="mppr"><span>50% reduction on 2nd+ procedure</span><input type="checkbox" id="mppr" class="switch" role="switch" checked></label>
+  </section>
+
+  <div class="actions">
+    <button class="btn primary" id="addPt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Add Patient</button>
+    <button class="btn" id="togglePaste">Paste a List</button>
+    <button class="btn" id="copy">Copy Summary</button>
+    <button class="btn plain" id="clear">Clear Day</button>
   </div>
 
-  <div class="settings">
-    <label for="rate">$ / wRVU <input class="rate" id="rate" type="number" step="1" min="0" value="68" inputmode="decimal"></label>
-    <label for="mppr"><input type="checkbox" id="mppr" checked> 50% reduction on 2nd+ procedure</label>
+  <div class="paste card" id="pasteBox" hidden>
+    <label for="pasteIn" class="hint">One patient per line. Use codes, descriptions, or both. Add -50 or the word "bilateral" next to a bilateral procedure.</label>
+    <textarea id="pasteIn" placeholder="1. 55874, 55876&#10;2. TURBT medium&#10;3. rezum&#10;4. 52356-50&#10;5. ureteroscopy laser with stent bilateral, turp"></textarea>
+    <div class="actions"><button class="btn primary" id="doPaste">Add Patients</button><button class="btn plain" id="cancelPaste">Cancel</button></div>
   </div>
 
-  <div class="tools">
-    <button class="btn primary" id="addPt">+ Add patient</button>
-    <button class="btn" id="togglePaste">Paste a list</button>
-    <button class="btn" id="copy">Copy summary</button>
-    <button class="btn ghost" id="clear">Clear day</button>
-  </div>
-
-  <div class="paste" id="pasteBox" hidden>
-    <label for="pasteIn" class="hint">One patient per line. Use codes, descriptions, or both. Add <span class="mono">-50</span> or the word "bilateral" for bilateral cases.</label>
-    <textarea id="pasteIn" placeholder="1. 55874, 55876&#10;2. TURBT medium&#10;3. rezum&#10;4. 52356-50&#10;5. ureteroscopy laser with stent, bilateral"></textarea>
-    <div class="tools"><button class="btn primary" id="doPaste">Add these patients</button><button class="btn ghost" id="cancelPaste">Cancel</button></div>
-  </div>
-
-  <div class="example" id="exampleNote" hidden>Example day loaded (the 13 patients from Nov 5). Clear the day to start your own.</div>
+  <div class="callout" id="exampleNote" hidden>This is an example day: the 13 patients from Nov 5. Clear the day to start your own.</div>
 
   <div class="list" id="list"></div>
 
-  <div class="notes">
-    <div><b>Values.</b> Codes marked <span class="mono">2026</span> use the published 2026 Medicare work RVU. Codes marked <span class="mono">est</span> are the pre-2026 value reduced 2.5% for the 2026 efficiency adjustment, so check those against your fee schedule. E/M codes were not cut.</div>
-    <div><b>Multiple procedures.</b> With the reduction on, the highest-valued procedure for each patient counts at 100% and other procedures at 50%. Add-on codes, radiology interpretations and E/M visits are never reduced. Turn it off if your contract credits full value.</div>
-    <div><b>Bilateral.</b> Modifier -50 credits 150% of the single-side value.</div>
-    <div><b>Codes not in the list.</b> Type the 5-digit code and press Enter, then enter its wRVU by hand.</div>
-  </div>
-</div>
+  <section class="notes">
+    <h2>About these values</h2>
+    <p><b>Values.</b> Codes tagged 2026 use the published 2026 Medicare work RVU. Codes tagged est are the pre-2026 value reduced 2.5% for the 2026 efficiency adjustment, so check those against your fee schedule. E/M codes were not cut.</p>
+    <p><b>Multiple procedures.</b> With the reduction on, each patient's highest-valued procedure counts at 100% and other procedures at 50%. Add-on codes, radiology interpretations and E/M visits are never reduced.</p>
+    <p><b>Bilateral.</b> Modifier -50 credits 150% of the single-side value.</p>
+    <p><b>Codes not in the list.</b> Type the 5-digit code and press Return, then enter its wRVU.</p>
+  </section>
+  <p class="asof">Values as of the 2026 Medicare Physician Fee Schedule</p>
+</main>
 
 <div class="update" id="updateBar" role="status" hidden><span>Update available</span><button id="updateBtn">Refresh</button></div>
 
@@ -308,34 +387,46 @@ function search(q){
   return out.sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!seen.has(k)&&seen.add(k)).slice(0,8);
 }
 
+const ICON_X='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="currentColor" opacity=".16"/><path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const ICON_MINUS='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="currentColor" opacity=".16"/><path d="M6.5 10h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const ICON_SEARCH='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.8" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M10.6 10.6l3.4 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+
 function render(){
   const ae=document.activeElement, aid=ae&&ae.id, sel=ae&&ae.selectionStart;
   $('#rate').value=S.rate; $('#mppr').checked=S.mppr;
   $('#exampleNote').hidden=!S.example;
   const list=$('#list');
-  if(!S.patients.length){list.innerHTML='<div class="empty">No patients yet. Add a patient or paste a list of cases.</div>';}
+  if(!S.patients.length){list.innerHTML='<div class="empty card"><b>No patients yet</b><span>Tap Add Patient, or paste the day\'s list of cases.</span></div>';}
   else list.innerHTML=S.patients.map((p,i)=>{
     const r=calc(p);
     const rows=r.rows.map(({l,b,f})=>{
       const c=C[l.code]; const t=typeOf(l);
-      const desc=c?esc(c[0])+`<span class="src">${c[2]==='26'?'2026':'est'}${TYPE_LABEL[t]?' · '+TYPE_LABEL[t]:''}</span>`
-        :`<span class="hint">Not in list — wRVU</span> <input class="custom" id="cu-${l.id}" data-l="${l.id}" type="number" step="0.01" min="0" value="${l.custom??''}" aria-label="wRVU for ${esc(l.code)}">`;
+      const tag=c?`<span class="tag">${c[2]==='26'?'2026':'est'}${TYPE_LABEL[t]?' · '+TYPE_LABEL[t]:''}</span>`:'<span class="tag">custom</span>';
+      const desc=c?`<div class="l-desc">${esc(c[0])}</div>`
+        :`<div class="l-desc">Not in the code list. Enter its wRVU:</div><input class="custom" id="cu-${l.id}" data-l="${l.id}" type="number" step="0.01" min="0" inputmode="decimal" value="${l.custom??''}" aria-label="wRVU for ${esc(l.code)}">`;
       const canBil=t==='p';
-      return `<tr>
-        <td class="code">${esc(l.code)}</td>
-        <td class="desc">${desc}</td>
-        <td class="mod">${canBil?`<label class="chk"><input type="checkbox" id="bi-${l.id}" data-bil="${l.id}" ${l.bil?'checked':''}>-50</label>`:''}<label class="chk">×<input class="units" id="un-${l.id}" data-units="${l.id}" type="number" min="0" step="1" value="${l.units}" aria-label="Units"></label></td>
-        <td class="cred">${l.bil?'<span class="chip bil">150%</span>':''}${f<1?'<span class="chip half">50%</span>':''}${f2(b*f)}</td>
-        <td class="del"><button class="x" data-rml="${p.id}:${l.id}" aria-label="Remove ${esc(l.code)}">×</button></td></tr>`;
+      return `<li class="line">
+        <div class="l-main">
+          <div class="l-code">${esc(l.code)}${tag}</div>
+          ${desc}
+          <div class="l-ctrl">
+            ${canBil?`<button class="pill-toggle ${l.bil?'on':''}" id="bi-${l.id}" data-bil="${l.id}" aria-pressed="${l.bil}">Bilateral −50</button>`:''}
+            <label class="units-wrap" for="un-${l.id}">Units<input class="units" id="un-${l.id}" data-units="${l.id}" type="number" min="0" step="1" inputmode="numeric" value="${l.units}"></label>
+          </div>
+        </div>
+        <div class="l-val"><span>${f2(b*f)}</span><span class="chips">${l.bil?'<span class="chip bil">150%</span>':''}${f<1?'<span class="chip half">50%</span>':''}</span></div>
+        <button class="icon-btn" data-rml="${p.id}:${l.id}" aria-label="Remove ${esc(l.code)}">${ICON_MINUS}</button>
+      </li>`;
     }).join('');
-    return `<section class="pt">
-      <div class="pt-head"><span class="pt-num">${i+1}.</span>
+    return `<article class="pt card">
+      <div class="pt-head">
         <input class="pt-label" id="lb-${p.id}" data-label="${p.id}" value="${esc(p.label)}" placeholder="Patient ${i+1}" aria-label="Patient label">
-        <span class="pt-total num">${f2(r.total)}</span>
-        <button class="x" data-rmp="${p.id}" aria-label="Remove patient ${i+1}">×</button></div>
-      ${p.lines.length?`<div class="rows"><table>${rows}</table></div>`:''}
-      <div class="add"><input id="ad-${p.id}" data-add="${p.id}" autocomplete="off" placeholder="Add a code or procedure — e.g. 52356, or “ureteroscopy laser stent”" aria-label="Add code to patient ${i+1}"><ul class="sugg" id="sg-${p.id}" hidden></ul></div>
-    </section>`;
+        <span class="pt-total">${f2(r.total)}</span>
+        <button class="icon-btn" data-rmp="${p.id}" aria-label="Remove patient ${i+1}">${ICON_X}</button>
+      </div>
+      ${p.lines.length?`<ul class="lines">${rows}</ul>`:''}
+      <div class="add"><label class="search" for="ad-${p.id}">${ICON_SEARCH}<input id="ad-${p.id}" data-add="${p.id}" autocomplete="off" enterkeyhint="done" placeholder="Add a code or procedure" aria-label="Add code to patient ${i+1}"></label><ul class="sugg" id="sg-${p.id}" hidden></ul></div>
+    </article>`;
   }).join('');
   totals();
   if(aid){const el=document.getElementById(aid); if(el){el.focus(); try{if(sel!=null)el.setSelectionRange(sel,sel)}catch(e){}}}
@@ -343,10 +434,12 @@ function render(){
 }
 function totals(){
   let t=0,full=0; S.patients.forEach(p=>{const r=calc(p); t+=r.total; full+=r.full});
+  const d=money(t*(+S.rate||0));
   $('#tot').textContent=f2(t);
-  $('#totAlt').textContent=S.mppr&&Math.abs(full-t)>.004?`${f2(full)} without reduction`:'';
-  $('#dollars').textContent=money(t*(+S.rate||0));
+  $('#totAlt').textContent=S.mppr&&Math.abs(full-t)>.004?`${f2(full)} before the multiple-procedure reduction`:'';
+  $('#dollars').textContent=d;
   $('#ptCount').textContent=S.patients.length;
+  $('#tbTot').textContent=f2(t); $('#tbDollars').textContent=d; $('#tbPts').textContent=S.patients.length;
 }
 const pt=id=>S.patients.find(p=>p.id===+id);
 function touch(){ if(S.example){S.example=false} }
@@ -385,7 +478,6 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.dataset.bil){for(const p of S.patients){const l=p.lines.find(x=>x.id===+t.dataset.bil); if(l) l.bil=t.checked} touch(); render()}
   if(t.id==='mppr'){S.mppr=t.checked; render()}
 });
 document.addEventListener('keydown',e=>{
@@ -411,6 +503,7 @@ document.addEventListener('mousedown',e=>{
 });
 document.addEventListener('click',e=>{
   const t=e.target.closest('button'); if(!t) return;
+  if(t.dataset.bil){for(const p of S.patients){const l=p.lines.find(x=>x.id===+t.dataset.bil); if(l) l.bil=!l.bil} touch(); render(); return}
   if(t.dataset.rmp){S.patients=S.patients.filter(p=>p.id!==+t.dataset.rmp); touch(); render()}
   if(t.dataset.rml){const [pid,lid]=t.dataset.rml.split(':'); const p=pt(pid); p.lines=p.lines.filter(l=>l.id!==+lid); touch(); render()}
 });
@@ -421,9 +514,10 @@ $('#addPt').onclick=()=>{
 };
 $('#clear').onclick=()=>{
   const b=$('#clear');
-  if(b.dataset.armed){S.patients=[];S.example=false;render();b.textContent='Clear day';delete b.dataset.armed;return}
-  b.dataset.armed='1'; b.textContent='Tap again to clear';
-  setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent='Clear day'}},3000);
+  const reset=()=>{delete b.dataset.armed;b.textContent='Clear Day';b.classList.remove('armed')};
+  if(b.dataset.armed){S.patients=[];S.example=false;render();reset();return}
+  b.dataset.armed='1'; b.textContent='Tap Again to Clear'; b.classList.add('armed');
+  setTimeout(()=>{if(b.dataset.armed)reset()},3000);
 };
 $('#togglePaste').onclick=()=>{const bx=$('#pasteBox'); bx.hidden=!bx.hidden; if(!bx.hidden) $('#pasteIn').focus()};
 $('#cancelPaste').onclick=()=>{$('#pasteBox').hidden=true};
@@ -459,6 +553,12 @@ function toast(m){const d=document.createElement('div');d.className='toast';d.te
 
 load(); render();
 
+// Compact frosted bar once the summary card scrolls away
+try{
+  const io=new IntersectionObserver(([en])=>{const show=!en.isIntersecting&&en.boundingClientRect.top<0; $('#topbar').classList.toggle('show',show); $('#topbar').setAttribute('aria-hidden',String(!show));},{threshold:0});
+  io.observe($('#summary'));
+}catch(e){}
+
 // Offline support and update prompt
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
@@ -476,4 +576,3 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
-

@@ -1,6 +1,6 @@
 // OR wRVUs service worker: caches the app so it opens offline.
 // Bump VERSION whenever any file in /wrvu/ changes; open copies of the app then show "Update available".
-const VERSION = 'or-wrvus-v1';
+const VERSION = 'or-wrvus-v2';
 const FILES = [
   './',
   'index.html',
@@ -8,14 +8,7 @@ const FILES = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
-  'icons/apple-touch-icon.png',
-  'fonts/ibm-plex-sans-latin-400-normal.woff2',
-  'fonts/ibm-plex-sans-latin-500-normal.woff2',
-  'fonts/ibm-plex-sans-latin-600-normal.woff2',
-  'fonts/ibm-plex-sans-latin-700-normal.woff2',
-  'fonts/ibm-plex-mono-latin-400-normal.woff2',
-  'fonts/ibm-plex-mono-latin-500-normal.woff2',
-  'fonts/ibm-plex-mono-latin-600-normal.woff2'
+  'icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
