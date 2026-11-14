@@ -1,6 +1,6 @@
 // OR wRVUs service worker: caches the app so it opens offline.
 // Bump VERSION whenever any file in /wrvu/ changes; open copies of the app then show "Update available".
-const VERSION = 'or-wrvus-v2';
+const VERSION = 'or-wrvus-v3';
 const FILES = [
   './',
   'index.html',

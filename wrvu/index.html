@@ -33,6 +33,7 @@
   --rounded:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   --r-card:20px; --r-ctl:12px;
+  --seg-on:#ffffff; --seg-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#000000; --card:#1c1c1e; --elev:#2c2c2e;
@@ -43,6 +44,7 @@
   --red:#ff453a; --green:#30d158;
   --bar:rgba(28,28,30,.72);
   --shadow:0 0 0 1px rgba(255,255,255,.03);
+  --seg-on:#636366; --seg-shadow:0 3px 8px rgba(0,0,0,.3);
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#000000; --card:#1c1c1e; --elev:#2c2c2e;
@@ -53,6 +55,7 @@
   --red:#ff453a; --green:#30d158;
   --bar:rgba(28,28,30,.72);
   --shadow:0 0 0 1px rgba(255,255,255,.03);
+  --seg-on:#636366; --seg-shadow:0 3px 8px rgba(0,0,0,.3);
   color-scheme:dark}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -180,6 +183,32 @@ h1{font-family:var(--display);font-size:2.15rem;font-weight:700;letter-spacing:-
 .update{display:flex;gap:12px;align-items:center;padding:6px 6px 6px 18px}
 .update button{height:32px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:.85rem}
 
+
+/* surgery / clinic switcher */
+.seg{display:grid;grid-template-columns:1fr 1fr;padding:2px;border-radius:10px;background:var(--fill);position:relative}
+.seg button{position:relative;z-index:1;height:34px;border-radius:8px;font-size:.92rem;font-weight:500;color:var(--fg);transition:background .2s,box-shadow .2s}
+.seg button[aria-selected="true"]{background:var(--seg-on);box-shadow:var(--seg-shadow);font-weight:600}
+/* clinic counters */
+.clinic{display:flex;flex-direction:column;gap:20px}
+.grp-title{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--secondary);margin:0 0 -12px 18px;display:flex;justify-content:space-between;padding-right:18px}
+.grp-title span:last-child{font-family:var(--rounded);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+.crow{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;min-height:58px;padding:9px 12px 9px 18px;position:relative}
+.crow+.crow::before{content:"";position:absolute;top:0;left:18px;right:0;border-top:.5px solid var(--separator)}
+.c-main{min-width:0;display:flex;flex-direction:column;gap:1px}
+.c-code{font-family:var(--mono);font-weight:600;font-size:.95rem}
+.c-desc{font-size:.85rem;color:var(--secondary)}
+.c-sub{font-family:var(--rounded);font-size:.95rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--secondary);min-width:3.4em;text-align:right}
+.c-sub.has{color:var(--fg)}
+.stepper{display:flex;align-items:center;gap:6px}
+.count{width:46px;height:34px;border:0;border-radius:9px;background:transparent;text-align:center;font-family:var(--rounded);font-size:1.15rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--fg);padding:0}
+.count:focus{outline:none;background:var(--fill-2);color:var(--accent)}
+.count.zero{color:var(--tertiary)}
+.steps{display:flex;background:var(--fill-2);border-radius:9px;height:34px;overflow:hidden}
+.steps button{width:44px;display:flex;align-items:center;justify-content:center;color:var(--fg);transition:background .12s}
+.steps button:active{background:var(--fill)}
+.steps button+button{border-left:.5px solid var(--separator)}
+.steps svg{width:14px;height:14px}
+@media (max-width:420px){.crow{grid-template-columns:1fr auto;gap:6px 10px}.c-sub{grid-column:1;grid-row:2;text-align:left;font-size:.82rem;min-width:0}.stepper{grid-row:1/3;grid-column:2}}
 @media (max-width:560px){
   .wrap{padding-block:16px 56px;gap:16px}
   h1{font-size:2.05rem}
@@ -196,14 +225,19 @@ h1{font-family:var(--display);font-size:2.15rem;font-weight:700;letter-spacing:-
 <header class="topbar" id="topbar" aria-hidden="true">
   <div class="topbar-in">
     <span class="tb-title">OR wRVUs</span>
-    <span class="tb-stats"><b id="tbTot">0.00</b> wRVU · <span id="tbDollars">$0</span> · <span id="tbPts">0</span> pts</span>
+    <span class="tb-stats"><b id="tbTot">0.00</b> wRVU · <span id="tbDollars">$0</span> · <span id="tbPts">0</span> <span id="tbUnit">pts</span></span>
   </div>
 </header>
 
 <main class="wrap">
   <div class="hero">
     <h1>OR wRVUs</h1>
-    <p class="sub">Add each patient's CPT codes, or describe the procedure in plain words.</p>
+    <p class="sub" id="heroSub">Add each patient's CPT codes, or describe the procedure in plain words.</p>
+  </div>
+
+  <div class="seg" role="tablist" aria-label="Day type">
+    <button role="tab" id="tab-surgery" data-tab="surgery" aria-selected="true" aria-controls="surgeryView">Surgery</button>
+    <button role="tab" id="tab-clinic" data-tab="clinic" aria-selected="false" aria-controls="clinicView">Clinic</button>
   </div>
 
   <section class="summary card" id="summary" aria-live="polite">
@@ -214,15 +248,18 @@ h1{font-family:var(--display);font-size:2.15rem;font-weight:700;letter-spacing:-
     </div>
     <div class="sum-side">
       <div class="kv"><span class="eyebrow">Production</span><span class="kv-v money" id="dollars">$0</span></div>
-      <div class="kv"><span class="eyebrow">Patients</span><span class="kv-v" id="ptCount">0</span></div>
+      <div class="kv"><span class="eyebrow" id="countLabel">Patients</span><span class="kv-v" id="ptCount">0</span></div>
     </div>
   </section>
 
   <section class="group card" aria-label="Settings">
     <label class="row" for="rate"><span>Dollars per wRVU</span><span class="rate-wrap">$<input class="rate" id="rate" type="number" step="1" min="0" value="68" inputmode="decimal"></span></label>
-    <label class="row" for="mppr"><span>50% reduction on 2nd+ procedure</span><input type="checkbox" id="mppr" class="switch" role="switch" checked></label>
+    <label class="row" for="mppr" id="mpprRow"><span>50% reduction on 2nd+ procedure</span><input type="checkbox" id="mppr" class="switch" role="switch" checked></label>
   </section>
 
+  <div class="clinic" id="clinicView" role="tabpanel" aria-labelledby="tab-clinic" hidden></div>
+
+  <div id="surgeryView" role="tabpanel" aria-labelledby="tab-surgery" style="display:contents">
   <div class="actions">
     <button class="btn primary" id="addPt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Add Patient</button>
     <button class="btn" id="togglePaste">Paste a List</button>
@@ -239,12 +276,14 @@ h1{font-family:var(--display);font-size:2.15rem;font-weight:700;letter-spacing:-
   <div class="callout" id="exampleNote" hidden>This is an example day: the 13 patients from Nov 5. Clear the day to start your own.</div>
 
   <div class="list" id="list"></div>
+  </div>
 
   <section class="notes">
     <h2>About these values</h2>
     <p><b>Values.</b> Codes tagged 2026 use the published 2026 Medicare work RVU. Codes tagged est are the pre-2026 value reduced 2.5% for the 2026 efficiency adjustment, so check those against your fee schedule. E/M codes were not cut.</p>
     <p><b>Multiple procedures.</b> With the reduction on, each patient's highest-valued procedure counts at 100% and other procedures at 50%. Add-on codes, radiology interpretations and E/M visits are never reduced.</p>
     <p><b>Bilateral.</b> Modifier -50 credits 150% of the single-side value.</p>
+    <p><b>Clinic days.</b> Visit counts are separate patients, so no multiple-procedure reduction applies. G2211 is counted only as entered. Office procedures billed with a visit need modifier -25 on the visit.</p>
     <p><b>Codes not in the list.</b> Type the 5-digit code and press Return, then enter its wRVU.</p>
   </section>
   <p class="asof">Values as of the 2026 Medicare Physician Fee Schedule</p>
@@ -339,10 +378,17 @@ const EXAMPLE=[
 let uid=1;
 const mkLine=(code,bil=false,units=1,custom=null)=>({id:uid++,code,bil,units,custom});
 const mkPt=(lines=[],label='')=>({id:uid++,label,lines});
-let S={rate:68,mppr:true,example:false,patients:[]};
+let S={rate:68,mppr:true,example:false,patients:[],tab:'surgery',clinic:{}};
+const CLINIC=[
+ {title:'New patients',codes:['99202','99203','99204','99205'],visit:true},
+ {title:'Established patients',codes:['99212','99213','99214','99215'],visit:true},
+ {title:'Add-on',codes:['G2211']},
+ {title:'Office procedures',codes:['52000','52310','52287','55250']}];
+const CLINIC_DESC={'99202':'Level 2','99203':'Level 3','99204':'Level 4','99205':'Level 5','99212':'Level 2','99213':'Level 3','99214':'Level 4','99215':'Level 5','G2211':'Visit complexity (Medicare)','52000':'Cystoscopy','52310':'Cysto with stent removal','52287':'Bladder Botox','55250':'Vasectomy'};
 
 function load(){
-  try{const raw=localStorage.getItem('wrvu-day-v1'); if(raw){const s=JSON.parse(raw); if(s&&Array.isArray(s.patients)){S=s; S.patients.forEach(p=>{uid=Math.max(uid,p.id+1);p.lines.forEach(l=>uid=Math.max(uid,l.id+1))}); return;}}}catch(e){}
+  try{const raw=localStorage.getItem('wrvu-day-v1'); if(raw){const s=JSON.parse(raw); if(s&&Array.isArray(s.patients)){S=Object.assign({tab:'surgery',clinic:{}},s); S.patients.forEach(p=>{uid=Math.max(uid,p.id+1);p.lines.forEach(l=>uid=Math.max(uid,l.id+1))}); return;}}}catch(e){}
+  S.tab='surgery'; S.clinic={};
   S.example=true;
   S.patients=EXAMPLE.map(ls=>mkPt(ls.map(([c,b])=>mkLine(c,!!b))));
 }
@@ -432,7 +478,49 @@ function render(){
   if(aid){const el=document.getElementById(aid); if(el){el.focus(); try{if(sel!=null)el.setSelectionRange(sel,sel)}catch(e){}}}
   save();
 }
+function clinicCalc(){
+  let t=0,visits=0,newV=0,estV=0;
+  CLINIC.forEach((g,gi)=>g.codes.forEach(c=>{const n=Math.max(0,+S.clinic[c]||0); t+=n*C[c][1]; if(g.visit){visits+=n; if(gi===0)newV+=n; else estV+=n;}}));
+  return {t,visits,newV,estV};
+}
+const ICON_PLUS='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const ICON_DASH='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+function buildClinic(){
+  $('#clinicView').innerHTML=CLINIC.map((g,gi)=>`<div><h2 class="grp-title"><span>${g.title}</span><span id="gsub-${gi}"></span></h2></div>
+    <section class="group card">${g.codes.map(c=>`<div class="crow">
+      <div class="c-main"><span class="c-code">${c}</span><span class="c-desc">${CLINIC_DESC[c]} · ${f2(C[c][1])}</span></div>
+      <span class="c-sub" id="csub-${c}"></span>
+      <div class="stepper"><input class="count" id="cn-${c}" data-count="${c}" type="number" min="0" step="1" inputmode="numeric" aria-label="Number of ${c}">
+        <div class="steps"><button data-step="${c}" data-d="-1" aria-label="One fewer ${c}">${ICON_DASH}</button><button data-step="${c}" data-d="1" aria-label="One more ${c}">${ICON_PLUS}</button></div></div>
+    </div>`).join('')}</section>`).join('')+
+    `<div class="actions"><button class="btn" id="copyC">Copy Summary</button><button class="btn plain" id="clearC">Clear Day</button></div>`;
+}
+function updateClinic(){
+  CLINIC.forEach((g,gi)=>{let gs=0; g.codes.forEach(c=>{
+    const n=Math.max(0,+S.clinic[c]||0), v=n*C[c][1]; gs+=v;
+    const inp=$('#cn-'+c); if(document.activeElement!==inp) inp.value=n; inp.classList.toggle('zero',!n);
+    const sub=$('#csub-'+c); sub.textContent=n?f2(v):'—'; sub.classList.toggle('has',!!n);
+  }); $('#gsub-'+gi).textContent=gs?f2(gs):'';});
+}
+function setTab(t){
+  S.tab=t==='clinic'?'clinic':'surgery'; const cl=S.tab==='clinic';
+  $('#tab-surgery').setAttribute('aria-selected',String(!cl)); $('#tab-clinic').setAttribute('aria-selected',String(cl));
+  $('#clinicView').hidden=!cl; $('#surgeryView').hidden=cl; $('#mpprRow').hidden=cl;
+  $('#heroSub').textContent=cl?'Enter how many of each visit level you saw today.':"Add each patient's CPT codes, or describe the procedure in plain words.";
+  try{history.replaceState(null,'',cl?'#clinic':location.pathname)}catch(e){}
+  totals(); save();
+}
 function totals(){
+  if(S.tab==='clinic'){
+    const r=clinicCalc(), d=money(r.t*(+S.rate||0));
+    updateClinic();
+    $('#tot').textContent=f2(r.t);
+    $('#totAlt').textContent=r.visits?`${f2(r.t/r.visits)} per visit on average · ${r.newV} new, ${r.estV} established`:'';
+    $('#dollars').textContent=d; $('#countLabel').textContent='Visits'; $('#ptCount').textContent=r.visits;
+    $('#tbTot').textContent=f2(r.t); $('#tbDollars').textContent=d; $('#tbPts').textContent=r.visits; $('#tbUnit').textContent='visits';
+    return;
+  }
+  $('#countLabel').textContent='Patients'; $('#tbUnit').textContent='pts';
   let t=0,full=0; S.patients.forEach(p=>{const r=calc(p); t+=r.total; full+=r.full});
   const d=money(t*(+S.rate||0));
   $('#tot').textContent=f2(t);
@@ -474,6 +562,7 @@ document.addEventListener('input',e=>{
     for(const p of S.patients){const l=p.lines.find(x=>x.id===+lid); if(l){ if(t.dataset.units) l.units=t.value; else l.custom=t.value; }}
     touch(); render(); return;
   }
+  if(t.dataset.count){S.clinic[t.dataset.count]=Math.max(0,parseInt(t.value,10)||0); totals(); save(); return}
   if(t.id==='rate'){S.rate=t.value; totals(); save()}
 });
 document.addEventListener('change',e=>{
@@ -496,6 +585,7 @@ document.addEventListener('keydown',e=>{
     if(sg.items.length) addCode(t.dataset.add,sg.items[sg.on],bil&&typeOf({code:sg.items[sg.on]})==='p');
   } else if(e.key==='Escape') hideSugg();
 });
+document.addEventListener('focusin',e=>{if(e.target.dataset&&e.target.dataset.count){const el=e.target; setTimeout(()=>{try{el.select()}catch(_){}} ,0)}});
 document.addEventListener('mousedown',e=>{
   const li=e.target.closest('[data-pick]');
   if(li){e.preventDefault(); addCode(sg.pid,li.dataset.pick); return}
@@ -503,6 +593,12 @@ document.addEventListener('mousedown',e=>{
 });
 document.addEventListener('click',e=>{
   const t=e.target.closest('button'); if(!t) return;
+  if(t.dataset.tab){setTab(t.dataset.tab); return}
+  if(t.dataset.step){const c=t.dataset.step; S.clinic[c]=Math.max(0,(+S.clinic[c]||0)+(+t.dataset.d)); totals(); save(); return}
+  if(t.id==='copyC'){copyText(clinicSummary()); return}
+  if(t.id==='clearC'){const reset=()=>{delete t.dataset.armed;t.textContent='Clear Day';t.classList.remove('armed')};
+    if(t.dataset.armed){S.clinic={}; totals(); save(); reset(); return}
+    t.dataset.armed='1'; t.textContent='Tap Again to Clear'; t.classList.add('armed'); setTimeout(()=>{if(t.dataset.armed)reset()},3000); return}
   if(t.dataset.bil){for(const p of S.patients){const l=p.lines.find(x=>x.id===+t.dataset.bil); if(l) l.bil=!l.bil} touch(); render(); return}
   if(t.dataset.rmp){S.patients=S.patients.filter(p=>p.id!==+t.dataset.rmp); touch(); render()}
   if(t.dataset.rml){const [pid,lid]=t.dataset.rml.split(':'); const p=pt(pid); p.lines=p.lines.filter(l=>l.id!==+lid); touch(); render()}
@@ -545,13 +641,25 @@ $('#copy').onclick=async()=>{
   let t=0; const out=S.patients.map((p,i)=>{const r=calc(p); t+=r.total;
     return `${p.label||'Patient '+(i+1)}: `+r.rows.map(({l,b,f})=>`${l.code}${l.bil?'-50':''}${l.units!=1?' x'+l.units:''} (${f2(b*f)})`).join(' + ')+` = ${f2(r.total)}`});
   out.push(`Day total: ${f2(t)} wRVU (${money(t*(+S.rate||0))} at $${S.rate}/wRVU${S.mppr?', multiple-procedure reduction applied':''})`);
-  const txt=out.join('\n');
-  try{await navigator.clipboard.writeText(txt); toast('Summary copied')}
-  catch(e){const ta=$('#pasteIn'); $('#pasteBox').hidden=false; ta.value=txt; ta.select(); toast('Select-all text shown above. Copy it with your keyboard.')}
+  copyText(out.join('\n'));
 };
+function clinicSummary(){
+  const r=clinicCalc(), out=[];
+  CLINIC.forEach(g=>g.codes.forEach(c=>{const n=+S.clinic[c]||0; if(n) out.push(`${c} x ${n} = ${f2(n*C[c][1])}`)}));
+  out.push(`Clinic day total: ${f2(r.t)} wRVU over ${r.visits} visits (${money(r.t*(+S.rate||0))} at $${S.rate}/wRVU)`);
+  return out.join('\n');
+}
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt); toast('Summary copied'); return}catch(e){}
+  const ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select();
+  let ok=false; try{ok=document.execCommand('copy')}catch(e){} ta.remove();
+  toast(ok?'Summary copied':'Copy isn\'t available here');
+}
 function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 
-load(); render();
+load(); buildClinic(); render();
+setTab(location.hash==='#clinic'?'clinic':(S.tab||'surgery'));
+window.addEventListener('hashchange',()=>setTab(location.hash==='#clinic'?'clinic':'surgery'));
 
 // Compact frosted bar once the summary card scrolls away
 try{
